@@ -138,7 +138,7 @@ namespace AkuRomAnaylzer
 				var prgOffset = romBank * 16384;
 				var prgBank = new byte[16384];
 				Array.Copy(prg, prgOffset, prgBank, 0, prgBank.Length);
-				var readOffset = region == Region.Us ? 0x937F : 0x92AF;
+				var readOffset = region == Region.Us ? 0x937F : 0x92AE;
 
 				// now begin
 				Console.WriteLine($"\nReading rom offsets at ${readOffset:X4}...\n");
