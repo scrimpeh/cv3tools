@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text.RegularExpressions;
 using System.IO;
+using AkuRomAnaylzer.Extensions.ByteArray;
 
 namespace AkuRomAnaylzer
 {
@@ -146,9 +146,7 @@ namespace AkuRomAnaylzer
 				var levelOffsets = new List<int>();
 				for (var level = 0; level < 15; level++)
 				{
-					var lo = prgBank[readOffset++];
-					var hi = prgBank[readOffset++];
-					var levelAddr = (hi << 8) | lo;
+					var levelAddr = prgBank.ReadWordAndInc(ref readOffset);
 					levelOffsets.Add(levelAddr);
 					Console.WriteLine($"Block ${level:X} -> ${levelAddr:X4}");
 				}
@@ -180,9 +178,7 @@ namespace AkuRomAnaylzer
 					var currentSublevel = new List<int>();
 					for (var sublevel = 0; sublevel < blockSublevelCounts[i]; sublevel++)
 					{
-						var sublevelOffsLo = prgBank[offs++];
-						var sublevelOffsHi = prgBank[offs++];
-						var sublevelOffs = (sublevelOffsHi <<8) | sublevelOffsLo;
+						var sublevelOffs = prgBank.ReadWordAndInc(ref offs);
 						currentSublevel.Add(sublevelOffs);
 						Console.WriteLine($"BLK {i:X}-{sublevel} - ${sublevelOffs:X4}");
 					}
@@ -197,6 +193,20 @@ namespace AkuRomAnaylzer
 				// the pointer to a room is later dereferenced, and the value found there is used as an index into a fixed table which
 				// holds the level ID we want to write.
 				// our goal is to find a good index
+
+				// first, obtain the table that is dereferenced
+				// i have no clue what it's actually used for, which doesn't help naming a lot
+				var indexedTableOffs = (region == Region.Us ? 0xA03F : 0x9F6E) & 0x3FFF;
+				var indexedTableSize = 228;
+				var indexedTablePtrs = new int[indexedTableSize];
+				Console.WriteLine($"\nReading Table @ ${indexedTableOffs | 0x8000:X4}...");
+				for (i = 0; i < indexedTableSize; i++)
+				{
+					indexedTablePtrs[i] = prgBank.ReadWordAndInc(ref indexedTableOffs);
+				}
+				Console.WriteLine("Reading Offsets from table...");
+
+
 				Console.WriteLine("\nAnalyzing room pointer data...\n");
 
 				var readRoom = -1;
@@ -206,9 +216,7 @@ namespace AkuRomAnaylzer
 
 				while (true)
 				{
-					var roomAddressLo = prgBank[readOffs & 0x3FFF];
-					var roomAddressHi = prgBank[(readOffs + 1) & 0x3FFF];
-					var roomAddress = (roomAddressHi << 8) | roomAddressLo;
+					var roomAddress = prgBank.ReadWord(readOffs & 0x3FFF);
 
 					var nextSubLevel = readSublevel + 1;
 					var nextBlock = readBlock + 1;
@@ -235,6 +243,7 @@ namespace AkuRomAnaylzer
 					// now analyze what we can find there there
 					
 					var offs = 0xAA;
+					var structOffs = 0;
 					if ((roomAddress & ~0x800) == 0)
 					{
 						Console.WriteLine("[RAM] [ZP]");
@@ -253,7 +262,17 @@ namespace AkuRomAnaylzer
 						roomAddress &= 0x3FFF;
 						roomAddress += offs;
 						var read = prgBank[roomAddress];
-						Console.WriteLine($"@ [${0x8000 | (roomAddress - offs):X4}],${offs:X2} -> ${read:X2}");
+						Console.Write($"@ [${0x8000 | (roomAddress - offs):X4}],${offs:X2} -> ${read:X2} ");
+						if (read > indexedTablePtrs.Length)
+						{
+							Console.WriteLine(" --> [?]");
+						}
+						else
+						{
+							var indexed = indexedTablePtrs[read];
+
+							Console.WriteLine($" --> [${indexed:X4}],${structOffs:X2} => ${prgBank[(indexed + structOffs) & 0x3FFF]:X2}");
+						}
 					}
 					else
 					{
@@ -277,8 +296,9 @@ namespace AkuRomAnaylzer
 						}
 					}
 				}
-
 			}
+
+			Console.WriteLine("\nDone");
 		}
 
 		static bool ValidateRom(byte[] raw, Region region, RomType type)
