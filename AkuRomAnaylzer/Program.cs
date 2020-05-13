@@ -13,7 +13,6 @@ namespace AkuRomAnaylzer
 		{
 			// Todo: Factor all this out into separate classes / functions
 			var region = Region.Unknown;
-			var romType = RomType.Unsupported;
 			string path = null;
 
 			// Search Castlevania 3 ROM for Pointer Tables relating to map loading
@@ -89,57 +88,19 @@ namespace AkuRomAnaylzer
 
 			// As far as I know, there were no differing revisions of the game, so we don't need to do a check for that.
 
-			// Now read the rom
-			byte[] rawRom = null;
-			try
+			byte[] prgBank = null;
+			try 
 			{
-				rawRom = File.ReadAllBytes(path);
+				var romLoader = new RomLoader(path, region);
+				prgBank = romLoader.PrgDataBank;
+				Console.WriteLine($"Got ROM - Region {region}. Extracted PRG ROM [{romLoader.Size / 1024} kib]");
 			}
 			catch (Exception e)
 			{
-				Console.WriteLine($"Error reading file: {e.Message}");
+				Console.WriteLine($"Error Loading Rom: {e.Message}");
 				Environment.Exit(1);
 			}
-
-			try
-			{
-				romType = GuessRomType(path, rawRom);
-			}
-			catch (Exception e)
-			{
-				Console.WriteLine($"Error determining ROM type: {e.Message}");
-				Environment.Exit(1);
-			}
-
-			if (!ValidateRom(rawRom, region, romType))
-			{
-				Console.WriteLine($"Error. Rom doesn't match expected paramenters!");
-				Environment.Exit(1);
-			}
-
-			// Extract PRG rom
-			var trained = (rawRom[6] & 0x4) != 0;
-			var prgStart = trained ? 528 : 16;
-			var prgSize = rawRom[4] * 16384;
-			var prg = new byte[prgSize];
-			try
-			{
-				Array.Copy(rawRom, prgStart, prg, 0, prgSize);
-			}
-			catch (Exception e)
-			{
-				Console.WriteLine($"Couldn't read ROM: {e.Message}");
-				Environment.Exit(1);
-			}
-
-			// now anaylze
-			Console.WriteLine($"Got ROM - Region {region}. Extracted PRG ROM [{prgSize / 1024} kib]");
-
-			var romBank = 10;
-			// note that this is the offset the game code reads from, which needs to be masked with 0x3FFF first
-			var prgOffset = romBank * 16384;
-			var prgBank = new byte[16384];
-			Array.Copy(prg, prgOffset, prgBank, 0, prgBank.Length);
+			
 			var readOffset = region == Region.Us ? 0x937F : 0x92AE;
 
 			// now begin
@@ -199,10 +160,10 @@ namespace AkuRomAnaylzer
 				offsetTable[i] = prgBank[(offsetTableAddr + i) & 0x3FFF];
 			}
 
-			var targetAddress = 0xAA;
-			var targetValues = new List<int>() { 0xD, 0x11, 0x36, 0x43, 0x7C, 0x7D, 0x7E, 0x83, 0x87, 0xA6, 0xA7, 0xAE, 0xAF, 0xB2, 0xB3, 0xBD };
-			//var targetAddress = 0x18;
-			//var targetValues = new List<int>() { 0xC };
+			//var targetAddress = 0xAA;
+			//var targetValues = new List<int>() { 0xD, 0x11, 0x36, 0x43, 0x7C, 0x7D, 0x7E, 0x83, 0x87, 0xA6, 0xA7, 0xAE, 0xAF, 0xB2, 0xB3, 0xBD };
+			var targetAddress = 0x18;
+			var targetValues = new List<int>() { 0xC };
 
 			Console.WriteLine($"\nTrying to find errant RAM write for ${targetAddress:X2}.");
 			Console.Write("Possible values are: \n");
@@ -348,7 +309,6 @@ namespace AkuRomAnaylzer
 
 				// now analyze what we can find there there
 				var offs = (goodOffsets[0].CamOffs * 2) & 0xFF;	// this is effectively (camera pos * 8 & 0xFF) = ($76*2)
-				var structOffs = 0;
 				if ((roomAddress & ~0x800) == 0)
 				{
 					Console.WriteLine("[RAM] [ZP]");
@@ -434,59 +394,6 @@ namespace AkuRomAnaylzer
 			}
 
 			Console.WriteLine("\nDone");
-		}
-
-		static bool ValidateRom(byte[] raw, Region region, RomType type)
-		{
-			// Castlevania 3 ROM has 256 kb of PRG rom and 128 kb of CHR Rom in both regions
-			// Mapper MMC5 (5) in U, and mapper VRC6a (24) for J
-			switch (type)
-			{
-				case RomType.Ines:
-					{
-						var expectedMapper = region == Region.Japan ? 24 : 5;
-						var prgBanks = raw[4];
-						var chrBanks = raw[5];
-						var mapper = (raw[7] & 0xF0) | (raw[6] >> 4);
-						if (prgBanks != 16 || chrBanks != 16 || mapper != expectedMapper)
-						{
-							return false;
-						}
-						return true;
-					}
-			}
-
-			return false;
-		}
-
-		static RomType GuessRomType(string path, byte[] raw)
-		{
-			var assumedRomType = RomType.Unsupported;
-
-			// First, look at the filename
-			var extension = Path.GetExtension(path);
-			if (extension == ".nes")
-			{
-				assumedRomType = RomType.Ines;
-			}
-
-			// Now, look at the header
-			if (raw.Length < 16)
-			{
-				throw new Exception("ROM too small!");
-			}
-
-			switch (assumedRomType)
-			{
-				case RomType.Ines:
-					if (raw[0] == 0x4E && raw[1] == 0x45 && raw[2] == 0x53 && raw[3] == 0x1A)
-					{
-						return RomType.Ines;
-					}
-					break;
-			}
-
-			throw new Exception("Cannot guess Rom Type!");
 		}
 
 		static Region TryGuessRegion(string path)
@@ -595,13 +502,7 @@ namespace AkuRomAnaylzer
 		FinalApproach = 0xE
 	}
 
-	enum RomType
-	{
-		Ines,
-		Unsupported
-	}
-
-	enum Region
+	public enum Region
 	{
 		Unknown,
 		Us,
