@@ -4,6 +4,11 @@
 
 display_tiles = true
 
+tile_w = 12
+tile_h = 12
+tile_origin_x = 1384
+tile_origin_y = 192
+
 -------------------
 
 --[[ 
@@ -26,7 +31,7 @@ game_type = nil
 
 function getGameType()
 	local board = gameinfo.getboardtype()
-	if board == "MMC5" then
+	if board == "ExROM" then
 		game_type = "us"
 	elseif board == "VRC6" then
 		game_type = "jp"
@@ -37,12 +42,6 @@ function getGameType()
 end
 
 function drawTile(tile_type, x, y)
-	-- not sure how to handle this, yet
-	local tile_w = 8
-	local tile_h = 8
-	local tile_origin_x = 0
-	local tile_origin_y = 512
-	
 	local x_pos = tile_origin_x + tile_w * x
 	local y_pos = tile_origin_y + tile_h * y
 	
@@ -61,18 +60,22 @@ end
 
 function displayTiles()
 	-- Test if we're ingame
-	local gamestate = memory.readbyte(getVal(0x1E, 0x18))
+	local gamestate = memory.readbyte(getVal(0x18, 0x18))
 	if gamestate ~= 4 then
+		gui.clearGraphics()
 		return
 	end
 	
 	local vertical = false	-- todo, figure out how to discern room modes
 	
 	local tiles_start = 0x6E0
-	local tiles_end = 0x770
+	local tiles_end = 0x770 - 1
 	
 	local row = 0			-- rows, going down
 	local column = 0 		-- columns, going side way
+	
+	-- Draw box around tiles
+	gui.drawRectangle(tile_origin_x, tile_origin_y, tile_w * 24, tile_h * 12, 0x66666666)
 	
 	for t = tiles_start, tiles_end do
 		local tile = memory.readbyte(t)
@@ -101,13 +104,13 @@ end
 
 -- Start Execution --
 
+console.clear()
 print("Starting CV3 Map viewer...")
 
 getGameType()
 
 -- We're drawing in client space
 gui.use_surface("client")
-gui.clearGraphics()
 
 while true do
 	if display_tiles then
