@@ -58,24 +58,57 @@ function getVal(us, jp)
 	end
 end
 
+function getRow(offs, vertical_mode) 
+	if vertical_mode then
+		return math.floor(offs / 8)
+	else
+		return math.mod(offs, 12)
+	end
+end
+
+function getColumn(offs, vertical_mode) 
+	if vertical_mode then
+		return math.mod(offs, 8)
+	else
+		return math.floor(offs / 12)
+	end
+end
+
+function isVerticalMode() 
+	-- Figure out the scrolling mode by 0xFD, which contains the vertical scroll offset for the status bar
+	-- In horizontal rooms, it is 0, in vertical rooms it is 4
+	-- This is not very pretty, but until I can figure out something better, this will do the trick
+	return memory.readbyte(0xFC) == 4
+end
+
 function displayTiles()
 	-- Test if we're ingame
-	local gamestate = memory.readbyte(getVal(0x18, 0x18))
+	local gamestate = memory.readbyte(0x18)
 	if gamestate ~= 4 then
 		gui.clearGraphics()
 		return
 	end
 	
-	local vertical = false	-- todo, figure out how to discern room modes
+	local vertical = isVerticalMode()
 	
-	local tiles_start = 0x6E0
-	local tiles_end = 0x770 - 1
 	
-	local row = 0			-- rows, going down
-	local column = 0 		-- columns, going side way
 	
+
 	-- Draw box around tiles
-	gui.drawRectangle(tile_origin_x, tile_origin_y, tile_w * 24, tile_h * 12, 0x66666666)
+	local tiles_start = 0x6E0
+	local metatile_buffer_width
+	local metatile_buffer_height
+	local tiles_end
+	if vertical then
+		metatile_buffer_width = 16
+		metatile_buffer_height = 16
+		tiles_end = 0x760 - 1
+	else
+		metatile_buffer_width = 24
+		metatile_buffer_height = 12
+		tiles_end = 0x770 - 1
+	end
+	gui.drawRectangle(tile_origin_x, tile_origin_y, tile_w * metatile_buffer_width, tile_h * metatile_buffer_height, 0x66666666)
 	
 	for t = tiles_start, tiles_end do
 		local tile = memory.readbyte(t)
@@ -83,35 +116,24 @@ function displayTiles()
 		local tile_l = bit.rshift(tile, 4)
 		local tile_r = bit.band(tile, 0x0F)
 		
+		local column = getColumn(t - 0x6E0, vertical)
+		local row = getRow(t - 0x6E0, vertical)
+		
 		drawTile(tile_l, column * 2, row)
 		drawTile(tile_r, column * 2 + 1, row)
-		
-		if vertical then
-			column = column + 1
-			if column == 8 then
-				column = 0
-				row = row + 1
-			end
-		else	
-			row = row + 1
-			if row == 12 then
-				row = 0
-				column = column + 1
-			end
-		end
 	end
 end
 
 -- Start Execution --
 
 console.clear()
+
 print("Starting CV3 Map viewer...")
 
 getGameType()
 
 -- We're drawing in client space
 gui.use_surface("client")
-
 while true do
 	if display_tiles then
 		displayTiles()
