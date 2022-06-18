@@ -186,7 +186,7 @@ while true do
 	-- Todo - using a callback for is way too slow - i need to somehow detect this happening in RAM
 	if show_replaced_tiles then
 		if not replaced_tiles_cb_registered then
-			event.onmemoryexecute(getReplacedTiles, 0xD273, "cv3_map_viewer_showReplacedTiles")
+			event.onmemoryexecute(getReplacedTiles, getVal(0xD29E, 0xD273), "cv3_map_viewer_showReplacedTiles")
 			replaced_tiles_cb_registered = true
 		end
 		showReplacedTiles()
