@@ -93,29 +93,27 @@ end
 function accept_state(state)
 	-- We rely on a state not having been rejected before	
 	local tile_load_l_col = memory.readbyte(ADDR_TILE_LOAD_L_COL)
-	
 	if tile_load_l_col == 0 then
 		return true
 	end
+	
 	return false
 end
 
 
-function create_state(state_type, input_value, parent)
+function create_state(state_type, input_value, parent_state)
 	new_state = {
 		state = state_type,
 		save = memorysavestate.savecorestate(),
 		depth = 0,
-		children = {},
 		input = input_value,
 		time_in_state = 0,
-		parent = parent
+		parent = parent_state
 	}
-	if parent ~= nil then
-		new_state.depth = parent.depth + 1
-		table.insert(parent.children, new_state)
-		if parent.state == next_state then
-			new_state.time_in_state = parent.time_in_state + 1
+	if parent_state ~= nil then
+		new_state.depth = parent_state.depth + 1
+		if parent_state.state == state_type then
+			new_state.time_in_state = parent_state.time_in_state + 1
 		end
 	end
 	return new_state
@@ -125,6 +123,7 @@ function perform_action(state, input_value, next_state)
 	set_inputs(input_value)
 	emu.frameadvance()
 	table.insert(_states, create_state(next_state, input_value, state))
+	memorysavestate.loadcorestate(state.save)
 end
 
 function can_pause()
@@ -162,7 +161,7 @@ function process_state(state)
 	local framecounter = memory.readbyte(ADDR_FRAMECOUNTER)
 	if state.state == STATE_GROUND then
 		perform(0x00, STATE_GROUND)	    	-- Idle
-		-- perform(0x01, STATE_GROUND_JUMP)  	-- Jump
+		perform(0x01, STATE_GROUND_JUMP)  	-- Jump
 		perform(0x40, STATE_GROUND)  		-- Walk Left
 		perform(0x80, STATE_GROUND) 		-- Walk Right
 		if can_pause() then
@@ -170,16 +169,18 @@ function process_state(state)
 		end
 	elseif state.state == STATE_GROUND_JUMP then
 		perform(0x40, STATE_AIR)	    	-- Jump Left
-		-- perform(0x00, STATE_AIR)	    	-- Jump Straight - should hopefully never need this
+		perform(0x00, STATE_AIR)	    	-- Jump Straight - should hopefully never need this
 		-- perform(0x80, STATE_AIR)	    	-- Jump Right - this is never wqhat I want
 	elseif state.state == STATE_GROUND_PAUSE then
 		if state.time_in_state < 4 then
 			perform(0x00, STATE_GROUND_PAUSE)	-- Idle
-			if state.time_in_state > 0 then
+			if state.time_in_state > 1 then
 				perform(0x08, STATE_GROUND)	-- Unpause
 				perform(0x48, STATE_GROUND)
 				perform(0x88, STATE_GROUND)
 			end
+		else 
+			_rejected_attempts = _rejected_attempts + 1
 		end
 	elseif state.state == STATE_AIR then
 		perform(0x00, STATE_AIR)
@@ -190,9 +191,11 @@ function process_state(state)
 	elseif state.state == STATE_AIR_PAUSE then
 		if state.time_in_state < 4 then
 			perform(0x00, STATE_AIR_PAUSE)	-- Idle
-			if state.time_in_state > 0 then
+			if state.time_in_state > 1 then
 				perform(0x08, STATE_AIR)	-- Unpause
 			end
+		else 
+			_rejected_attempts = _rejected_attempts + 1
 		end
 	end
 end
@@ -234,7 +237,7 @@ while i do
 	_total_attempts = _total_attempts + 1
 	process_state(state)
 	_states[i] = nil
-	i, state = next(_states, i)     
+	i, state = next(_states, nil)     
 	attempt_counter = attempt_counter + 1
 	if attempt_counter == 100 then
 		console.log("Attempts [ Total: " .. _total_attempts .. ", Left: " .. #_states .. ", Rejected: " .. _rejected_attempts .. ", Successful: " .. #_successful_attempts .. " ]")
@@ -246,7 +249,7 @@ console.log("Finished")
 console.log("Attempts [ Total: " .. _total_attempts .. ", Left: " .. #_states .. ", Rejected: " .. _rejected_attempts .. ", Successful: " .. #_successful_attempts .. " ]")
 
 if #_successful_attempts == 0 then
-	console.log("No successful attempt :(")
+	console.log("No successful attempts :(")
 end
 
 emu.limitframerate(true)
