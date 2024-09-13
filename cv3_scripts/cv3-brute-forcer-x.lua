@@ -28,7 +28,7 @@ STATE_GROUND_PAUSE = 2
 STATE_AIR = 3
 STATE_AIR_PAUSE = 4
 
-TIME_CUTOFF = 225
+TIME_CUTOFF = 180
 
 _successful_attempts = {}	-- I'm not sure what the best data structure for this is yet
 _states = {}
@@ -38,7 +38,6 @@ _states = {}
 _total_attempts = 0
 _rejected_attempts = 0
 _fastest_successful_attempt = 9999999
-_table_attempts = 0
 
 -- Version Specific Values --
 
@@ -48,6 +47,7 @@ ADDR_TILE_LOAD_R_COL = 0x5A
 ADDR_TILE_LOAD_R_COUNT = 0x5C
 ADDR_XS = 0x6E
 ADDR_FRAMECOUNTER = 0x1A
+ADDR_CAM_XY = 0x56
 
 
 -- Functions --
@@ -73,6 +73,15 @@ end
 
 function reject_state(state)
 	if state.depth >= TIME_CUTOFF then
+		return true
+	end
+	
+	if state.cam_x >= state.min_cam_x + 3 then
+		return true
+	end
+	
+	-- If we're not even close to making it by the end, yeet the attempt
+	if state.cam_x - 95 > TIME_CUTOFF - state.depth then
 		return true
 	end
 	
@@ -108,12 +117,17 @@ function create_state(state_type, input_value, parent_state)
 		depth = 0,
 		input = input_value,
 		time_in_state = 0,
-		parent = parent_state
+		parent = parent_state,
+		cam_x = memory.read_u16_le(ADDR_CAM_XY)
 	}
+	new_state.min_cam_x = new_state.cam_x
 	if parent_state ~= nil then
 		new_state.depth = parent_state.depth + 1
 		if parent_state.state == state_type then
 			new_state.time_in_state = parent_state.time_in_state + 1
+		end
+		if parent_state.min_cam_x < new_state.cam_x then
+			new_state.min_cam_x = parent_state.min_cam_x
 		end
 	end
 	return new_state
@@ -123,7 +137,7 @@ function perform_action(state, input_value, next_state)
 	set_inputs(input_value)
 	emu.frameadvance()
 	table.insert(_states, create_state(next_state, input_value, state))
-	memorysavestate.loadcorestate(state.save)
+	memorysavestate.loadcorestate(state.save)	-- Reload old save, as we only process the new state later
 end
 
 function can_pause()
@@ -169,7 +183,7 @@ function process_state(state)
 		end
 	elseif state.state == STATE_GROUND_JUMP then
 		perform(0x40, STATE_AIR)	    	-- Jump Left
-		perform(0x00, STATE_AIR)	    	-- Jump Straight - should hopefully never need this
+		-- perform(0x00, STATE_AIR)	    	-- Jump Straight - should hopefully never need this -- also, i don't react to landing yet
 		-- perform(0x80, STATE_AIR)	    	-- Jump Right - this is never wqhat I want
 	elseif state.state == STATE_GROUND_PAUSE then
 		if state.time_in_state < 4 then
@@ -203,23 +217,20 @@ end
 function print_successful_attempt(i, attempt)
 	console.log("=> Successful attempt @ " .. attempt.depth .. " @ frames")
 	
-	local filename = "cv3_brute_force_" .. i .. ".txt"
-	file = io.open(filename, "a");
-	
-	file:write("[DEPTH] " .. attempt.depth .. "\n\n")
-	
 	if attempt.depth < _fastest_successful_attempt then
 		console.log("New Winner! -> " .. attempt.depth .. " frames!")
 		_fastest_successful_attempt = attempt.depth
 		savestate.save("cv3_brute_force")
+		
+		local filename = "cv3_brute_force_" .. i .. ".txt"
+		file = io.open(filename, "a");
+		file:write("[DEPTH] " .. attempt.depth .. "\n\n")
+		while attempt.parent ~= nil do
+			file:write(string.format("%X\n", attempt.input))
+			attempt = attempt.parent
+		end
+		file:close()
 	end
-	
-	while attempt.parent ~= nil do
-		file:write(string.format("%X\n", attempt.input))
-		attempt = attempt.parent
-	end
-	file:close()
-	
 end
 
 -- Script Start --
@@ -239,7 +250,7 @@ while i do
 	_states[i] = nil
 	i, state = next(_states, nil)     
 	attempt_counter = attempt_counter + 1
-	if attempt_counter == 100 then
+	if attempt_counter == 500 then
 		console.log("Attempts [ Total: " .. _total_attempts .. ", Left: " .. #_states .. ", Rejected: " .. _rejected_attempts .. ", Successful: " .. #_successful_attempts .. " ]")
 		attempt_counter = 0
 	end
