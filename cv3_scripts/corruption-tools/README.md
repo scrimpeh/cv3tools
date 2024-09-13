@@ -45,17 +45,18 @@ Do not run both scripts together, instead, if you wish to use the map viewer fro
 Interactive widgets are displayed on screen, which either reveal more information when hovered with the mouse, or trigger additional functionality when clicked.
 
 __Note__: These scripts are designed for running with BizHawk in maximized mode with a 1920x1080 display.
-A lot of space to the left and right side of the screen are required to show all the relevant information for the corruption visualizer.
-If your display parameters are different, you must edit the position values inside the script.
+A lot of space to the left and right side of the screen is required to show all the relevant information for the corruption visualizer.
+If your display is different, you must edit the position values inside the script.
 
 __Note__: If you want to copy these scripts to another location, make sure to copy the entire directory and all files contained within, as the scripts include the other scripts within the subdirectories.
+If you are accessing this repository from GitHub, either clone the repository or download it as a zip file.
 
 If you wish to edit the scripts, make sure to always close and re-open BizHawk's Lua console between each edit, as parts of the script will otherwise not be reloaded properly.
 I recommend binding the Lua console to a BizHawk hotkey if you intend to edit the script a lot.
 
 There are a still few limitations and known issues:
 
-- Any time memory corruption occurs, more memory values are corrupted than the visualizer shows, between `$400` and `$6FF`. Most values in this range are related to player and enemy data. Accounting for this will mean going through the relevant portions of the assembly code, which have not been analyzed yet.
+- Any time memory corruption occurs, more memory values are corrupted than the visualizer shows, between `$400` and `$6FF`. Most values in this range are related to player and enemy data. Accounting for this will mean going through the relevant portions of the game's assembly code, which have not been analyzed yet.
 - Using the map viewer or enabling the extended information panel can cause significant slowdown on BizHawk 2.9.1 and earlier. As of this writing, current dev builds of BizHawk improve this a lot.
 
 ## Acknowledgements
