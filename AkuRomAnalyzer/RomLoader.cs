@@ -1,7 +1,7 @@
 ﻿using System;
 using System.IO;
 
-namespace AkuRomAnaylzer
+namespace AkuRomAnalyzer
 {
 	public class RomLoader
 	{

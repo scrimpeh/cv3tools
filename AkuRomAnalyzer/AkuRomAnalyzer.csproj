@@ -6,8 +6,8 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{048629D1-B9E8-4325-931A-AA2B12D5F278}</ProjectGuid>
     <OutputType>Exe</OutputType>
-    <RootNamespace>AkuRomAnaylzer</RootNamespace>
-    <AssemblyName>AkuRomAnaylzer</AssemblyName>
+    <RootNamespace>AkuRomAnalyzer</RootNamespace>
+    <AssemblyName>AkuRomAnalyzer</AssemblyName>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>

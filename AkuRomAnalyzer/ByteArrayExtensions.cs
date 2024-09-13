@@ -1,4 +1,4 @@
-﻿namespace AkuRomAnaylzer.Extensions.ByteArray
+﻿namespace AkuRomAnalyzer.Extensions.ByteArray
 {
 	public static class ByteArrayExtensions
 	{

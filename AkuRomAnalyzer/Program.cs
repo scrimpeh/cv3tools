@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.IO;
-using AkuRomAnaylzer.Extensions.ByteArray;
+using AkuRomAnalyzer.Extensions.ByteArray;
 
-namespace AkuRomAnaylzer
+namespace AkuRomAnalyzer
 {
 	class Program
 	{
