@@ -57,6 +57,7 @@ I recommend binding the Lua console to a BizHawk hotkey if you intend to edit th
 There are a still few limitations and known issues:
 
 - Any time memory corruption occurs, more memory values are corrupted than the visualizer shows, between `$400` and `$6FF`. Most values in this range are related to player and enemy data. Accounting for this will mean going through the relevant portions of the game's assembly code, which have not been analyzed yet.
+- The map viewer may not correctly show on-screen collision data in invalid vertical rooms. Implementing this will also require simulating the relevant portions of the tile collision assembly code.
 - Using the map viewer or enabling the extended information panel can cause significant slowdown on BizHawk 2.9.1 and earlier. As of this writing, current dev builds of BizHawk improve this a lot.
 
 ## Acknowledgements
