@@ -25,7 +25,7 @@ local function get_game_type()
 	elseif board == "VRC6" then
 		game_type = "jp"
 	else
-		error("Cannot determine game type" .. board)
+		error("Cannot determine game type " .. board)
 	end
 	print("Game type is " .. game_type .. ".")
 end

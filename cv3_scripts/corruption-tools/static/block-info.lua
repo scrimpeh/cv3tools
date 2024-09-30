@@ -39,7 +39,7 @@ define_block("7", "Cliffs",      { "01", "02", "03", "04", "05", "06", "07" }, {
 define_block("7", "Aquarius",    { "0A", "0B", "0C" },                         { 2, 2, 3 })
 define_block("8", "Deva Vu",     { "01", "02", "03" },                         { 2, 2, 1 })
 define_block("9", "Riddle",      { "01", "02", "03", "04" },                   { 3, 3, 3, 2 })
-define_block("A", "Pressure",    { "01", "02", "03" },                         { 3, 2, 2, 2 })
+define_block("A", "Pressure",    { "01", "02", "03", "03" },                   { 3, 2, 2, 2 })
 
 -- Functions
 

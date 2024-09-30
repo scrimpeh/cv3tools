@@ -1,6 +1,6 @@
 -- The OBJ Index Range shows where obj_idx_ptr ($98) points to. Ordinarily, the value of the pointer is
 -- determined by the current room index, but going to an invalid room or corrupting the value using memory
--- corruption can set the pointer to any value. We therefore show the entire 6502 adress range.
+-- corruption can set the pointer to any value. We therefore show the entire 6502 address range.
 -- The range is compressed and specifically highlights the important areas, i.e. the usual PRG ROM space
 -- where the pointer is intended to point, and zero page, since that is also very common
 
@@ -41,7 +41,7 @@ local function show_region(draw_x, draw_y, w, start_adr, end_adr, fg, bg)
 end
 
 function obj_idx_range.show()
-	-- Visualize what part of the NES adress space obj_val.obj_idx_pointer actually points to
+	-- Visualize what part of the NES address space obj_val.obj_idx_pointer actually points to
 	local draw_y = client.screenheight() - y_offs
 
 	-- Define how much space every region should take on

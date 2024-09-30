@@ -1,6 +1,6 @@
 -- The OBJ Index Range shows where obj_idx_ptr ($98) points to. Ordinarily, the value of the pointer is
 -- determined by the current room index, but going to an invalid room or corrupting the value using memory
--- corruption can set the pointer to any value. We therefore show the entire 6502 adress range.
+-- corruption can set the pointer to any value. We therefore show the entire 6502 address range.
 -- The range is compressed and specifically highlights the important areas, i.e. the usual PRG ROM space
 -- where the pointer is intended to point, and zero page, since that is also very common
 

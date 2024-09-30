@@ -5,19 +5,19 @@
 -- Pointed to by $69 (U) / $66 (J)
 -- 
 -- Address Translation ADR - ROM:
--- B88F -> 1F88F
+-- $B88F -> $1F88F
 -- 
 -- Horizontal
--- ab__ yyyy: Direction (up/down), Direction (left/right), Y tile
+-- aa__ yyyy: direction (UR, UL, DL, DR), Y tile
 -- xxxx xxxx: X px
 -- XXXX XXXX: X high
 -- 
 -- Vertical
--- ab__ YYYY: Direction (up/down), Direction (left/right), Y hight
+-- aa__ YYYY: direction (UR, UL, DL, DR), Y high
 -- yyyy yyyy: Y px
 -- xxxx xxxx: X px
 -- 
--- FF indicates end
+-- $FF as the first byte indicates sequence end
 -- 
 -- -- The game uses the camera position to find stairs in both horizontal and vertical rooms
 
