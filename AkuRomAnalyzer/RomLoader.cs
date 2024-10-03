@@ -1,102 +1,67 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 
 namespace AkuRomAnalyzer
 {
 	public class RomLoader
 	{
-		/// <summary>
-		/// The 16 KiB PRG rom bank where the game keeps its level data.
-		/// The same for both J and U releases of the game
-		/// </summary>
-		public const int LevelDataBank = 10;
+		private readonly byte[] InesHeader = { 0x4E, 0x45, 0x53, 0x1A };
 
-		public byte[] PrgRom { get; private set; }
-		public byte[] PrgDataBank { get; private set; }
+		public byte[][] PrgRom { get; private set; }
 		public RomType RomType { get; private set; }
 		public Region Region { get; private set; }
-		public long Size { get; private set; }
-		public string RomPath { get; private set; }
 
-
-		public RomLoader(string path, Region region)
+		public RomLoader(string path)
 		{
-			// Now read the rom
-			byte[] rawRom = null;
-			RomPath = path;
-			Region = region;
-			RomType = RomType.Unsupported;
+			var rawRom = File.ReadAllBytes(path);
 
-			rawRom = File.ReadAllBytes(path);
-			RomType = GuessRomType(path, rawRom);
-			
-			if (!ValidateRom(rawRom, region, RomType))
-			{
-				throw new Exception("Error validating ROM file! ROM header doesn't match expected ROM");
-			}
-
-			// Extract PRG rom
-			var trained = (rawRom[6] & 0x4) != 0;
-			var prgStart = trained ? 528 : 16;
-			var Size = rawRom[4] * 16384;
-			PrgRom = new byte[Size];
-			Array.Copy(rawRom, prgStart, PrgRom, 0, Size);
-			
-			var levelDataOffset = LevelDataBank * 16384;
-			PrgDataBank = new byte[16384];	// node that offsets from the game code need to be masked with 0x3FFF 
-			Array.Copy(PrgRom, levelDataOffset, PrgDataBank, 0, PrgDataBank.Length);
-		}
-
-		private bool ValidateRom(byte[] raw, Region region, RomType type)
-		{
-			// Castlevania 3 ROM has 256 kb of PRG rom and 128 kb of CHR Rom in both regions
-			// Mapper MMC5 (5) in U, and mapper VRC6a (24) for J
-			switch (type)
-			{
-				case RomType.Ines:
-					{
-						var expectedMapper = region == Region.Japan ? 24 : 5;
-						var prgBanks = raw[4];
-						var chrBanks = raw[5];
-						var mapper = (raw[7] & 0xF0) | (raw[6] >> 4);
-						if (prgBanks != 16 || chrBanks != 16 || mapper != expectedMapper)
-						{
-							return false;
-						}
-						return true;
-					}
-			}
-			return false;
-		}
-
-		private RomType GuessRomType(string path, byte[] raw)
-		{
-			var assumedRomType = RomType.Unsupported;
-
-			// First, look at the filename
+			// Get ROM data
 			var extension = Path.GetExtension(path);
+			var assumedRomType = RomType.Unsupported;
 			if (extension == ".nes")
-			{
 				assumedRomType = RomType.Ines;
-			}
-
-			// Now, look at the header
-			if (raw.Length < 16)
-			{
-				throw new Exception("ROM too small!");
-			}
 
 			switch (assumedRomType)
 			{
 				case RomType.Ines:
-					if (raw[0] == 0x4E && raw[1] == 0x45 && raw[2] == 0x53 && raw[3] == 0x1A)
-					{
-						return RomType.Ines;
-					}
+					GetInesRomData(path, rawRom);
 					break;
+				default:
+					throw new InvalidOperationException($"Unrecognized ROM file: {path}");
+			}
+		}
+
+		private void GetInesRomData(string path, byte[] rawRom)
+		{
+			if (!Enumerable.SequenceEqual(rawRom.Take(4), InesHeader)) 
+				throw new InvalidOperationException($"Unexpected Header for file {path}!");
+
+			// Validate Game-Specific Data
+			// Castlevania 3 ROM has 256 kb of PRG rom and 128 kb of CHR Rom in both regions
+			// Mapper MMC5 (5) in U, and mapper VRC6a (24) for J
+			var prgBanks = rawRom[4];
+			var chrBanks = rawRom[5];
+			if (prgBanks != 16 || chrBanks != 16)
+				throw new InvalidOperationException($"Unexpected Header for file {path}!");
+
+			var mapper = (rawRom[7] & 0xF0) | (rawRom[6] >> 4);
+			switch (mapper) 
+			{
+				case 5:  Region = Region.Us;    break;
+				case 24: Region = Region.Japan; break;
+				default: throw new InvalidOperationException($"Unexpected Mapper for file {path}: {mapper}!");
 			}
 
-			throw new Exception("Cannot guess Rom Type!");
+			// Extract PRG ROM in 16 KiB banks
+			var trained = (rawRom[6] & 0x4) != 0;
+			var prgStart = trained ? 528 : 16;
+			PrgRom = new byte[prgBanks][];
+			for (var i = 0; i < prgBanks; i++) 
+			{
+				PrgRom[i] = new byte[0x4000];
+				Array.Copy(rawRom, prgStart + 0x4000 * i, PrgRom[i], 0, 0x4000);
+			}
 		}
 	}
 

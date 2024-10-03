@@ -58,10 +58,18 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ArgumentParser.cs" />
     <Compile Include="ByteArrayExtensions.cs" />
+    <Compile Include="CorruptionSearch.cs" />
+    <Compile Include="FormatUtil.cs" />
+    <Compile Include="ObjRamWrite.cs" />
+    <Compile Include="Region.cs" />
+    <Compile Include="CorruptionSearchParameters.cs" />
+    <Compile Include="GameData.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RomLoader.cs" />
+    <Compile Include="StaticGameData.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
