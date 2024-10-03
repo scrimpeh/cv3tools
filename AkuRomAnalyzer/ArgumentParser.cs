@@ -6,7 +6,7 @@ namespace AkuRomAnalyzer
 {
 	public class ArgumentParser
 	{
-		private readonly IDictionary<char, Region>RecognizedRegions = new Dictionary<char, Region>
+		private readonly IDictionary<char, Region> RecognizedRegions = new Dictionary<char, Region>
 		{
 			{ 'u', Region.Us },
 			{ 'j', Region.Japan },
