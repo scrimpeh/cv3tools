@@ -28,7 +28,7 @@ namespace AkuRomAnalyzer
 			{
 				Console.WriteLine($"------------------ Starting Corruption Search {iteration++} ------------------\n");
 				Console.WriteLine("Target addresses: " + string.Join(", ", FormatUtil.ToHex(corruption.TargetAddress.Values)));
-				Console.WriteLine("Target values: " + string.Join(", ", FormatUtil.ToHex(corruption.TargetValues)) + '\n');
+				Console.WriteLine("Target values: " + corruption.TargetPredicate.Format() + '\n');
 				var corruptionSearch = new CorruptionSearch(romInformation, corruption);
 				corruptionSearch.Run();
 				Console.WriteLine($"\n------------------------------------------------------------------\n");

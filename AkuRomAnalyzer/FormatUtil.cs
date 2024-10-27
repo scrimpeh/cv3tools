@@ -5,14 +5,13 @@ namespace AkuRomAnalyzer
 {
 	public static class FormatUtil
 	{
-		public static IEnumerable<string> ToHex(IEnumerable<byte> values)
-			=> values.Select(s => $"${s:X2}");
-
-		public static IEnumerable<string> ToHex(IEnumerable<ushort> values)
-			=> values.Select(s => $"${s:X4}");
+		public static string ToHex(byte value) => $"${value:X2}";
+		public static IEnumerable<string> ToHex(IEnumerable<byte> values) => values.Select(ToHex);
+		public static string ToHex(ushort value) => $"${value:X4}";
+		public static IEnumerable<string> ToHex(IEnumerable<ushort> values) => values.Select(ToHex);
 
 		public static string ShowColumn(int column)
-			=> $"${column:X2} (Cam: {column * 64,5:#####} / ${column * 64:X4})";
+			=> $"${column:X2} [ZP: ${(column * 2) & 0xFF:X2}] (Cam: {column * 64,5:#####} / ${column * 64:X4})";
 
 		public static string ShowObj(ObjRamWrite obj)
 			=> $"OBJ ${obj.ObjIndex:X2} (byte {(obj.ObjByte == ObjRamWrite.NoObjByte ? "-": obj.ObjByte.ToString())})";

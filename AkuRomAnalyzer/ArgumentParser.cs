@@ -17,14 +17,13 @@ namespace AkuRomAnalyzer
 
 		// Currently constructed construction search parameters
 		private IDictionary<Region, ushort> targetAddresses;
-		private List<byte> targetValues;
 
 		public ArgumentParser(List<string> args)
 		{
 			if (!args.Any())
 				Error();
 			ResetParameters();
-			for (var i = 0; i < args.Count; i++)
+			for (var i = 0; i < args.Count;)
 				ParseArg(args, ref i);
 
 			if (!RomPaths.Any())
@@ -36,7 +35,6 @@ namespace AkuRomAnalyzer
 		private void ResetParameters()
 		{
 			targetAddresses = new Dictionary<Region, ushort>();
-			targetValues = new List<byte>();
 		}
 
 		private void ParseArg(List<string> args, ref int i)
@@ -44,49 +42,60 @@ namespace AkuRomAnalyzer
 			var arg = args[i].ToLowerInvariant();
 			if (arg == "-rom")
 			{
-				// TODO: I'm not sure yet if filenames with spaces are handled properly here
 				if (++i == args.Count)
 					Error("Reached end of args before getting ROM path!");
-				RomPaths.Add(args[i]);
+				RomPaths.Add(args[i++]);
 			}
 			else if (arg == "-target")
 			{
 				if (++i == args.Count)
 					Error("Reached end of args before getting target values!");
-				for (; i < args.Count; i++)
-				{
-					targetValues.Add(ParseByte(args[i]));
-					if (i == args.Count - 1 || args[i + 1].StartsWith("-"))
-					{
-						// Complete corruption
-						if (!targetAddresses.Any())
-							throw new ArgumentException("No target address given!");
-						var targetAddressU = GetTargetAddress(Region.Us);
-						var targetAddressJ = GetTargetAddress(Region.Japan);
-						TargetCorruptions.Add(new CorruptionSearchParameters(targetAddressU, targetAddressJ, targetValues.ToArray()));
-						ResetParameters();
-						break;
-					}
-				}
+				var targetPredicate = GetTargetPredicate(args, ref i);
+				var targetAddressU = GetTargetAddress(Region.Us);
+				var targetAddressJ = GetTargetAddress(Region.Japan);
+				TargetCorruptions.Add(new CorruptionSearchParameters(targetAddressU, targetAddressJ, targetPredicate));
+				ResetParameters();
 			}
 			else if (arg.StartsWith("-"))
 			{
 				var regions = arg.Substring(1).ToHashSet();
 				if (++i == args.Count)
 					Error("Reached end of args before getting target address!");
+				var targetAddress = ParseWord(args[i++]);
 				foreach (var regionKey in regions)
 				{
 					if (!RecognizedRegions.TryGetValue(regionKey, out var region))
 						Error($"Unknown region '{regionKey}'!");
 					if (targetAddresses.TryGetValue(region, out var existing))
 						Error($"Region {region} already has target address for given corruption: ${existing:X}");
-					targetAddresses[region] = ParseWord(args[i]);
+					targetAddresses[region] = targetAddress;
 				}
 			}
 			else
-			{
 				Error($"Unrecognized Argument: '{args[i]}'!");
+		}
+
+		private TargetPredicate GetTargetPredicate(List<string> args, ref int i)
+		{
+			if (args[i].ToLowerInvariant() == "any")
+			{
+				i++;
+				return TargetPredicate.Any();
 			}
+			else if (args[i].StartsWith("gte."))
+				return TargetPredicate.Of(TargetPredicate.Type.GreaterThanEqual, ParseByte(args[i++].Substring(4)));
+			else if (args[i].StartsWith("gt."))
+				return TargetPredicate.Of(TargetPredicate.Type.GreaterThan, ParseByte(args[i++].Substring(3)));			
+			else if (args[i].StartsWith("lte."))
+				return TargetPredicate.Of(TargetPredicate.Type.LessThanEqual, ParseByte(args[i++].Substring(4)));			
+			else if (args[i].StartsWith("lt."))
+				return TargetPredicate.Of(TargetPredicate.Type.LessThan, ParseByte(args[i++].Substring(3)));
+
+			// No predicate, assume "=="
+			var values = new List<byte>();
+			for (; i < args.Count && !args[i].StartsWith("-"); i++)
+				values.Add(ParseByte(args[i]));
+			return TargetPredicate.Equal(values);
 		}
 
 		private ushort GetTargetAddress(Region region)
@@ -134,8 +143,8 @@ namespace AkuRomAnalyzer
 			Console.Write("-u $32 ");
 			Console.Write("-j $34 ");
 			Console.Write("-target $0D $0E ");
-			Console.Write("-uj $18 ");
-			Console.Write("-target $0C ");
+			Console.Write("-u $34 ");
+			Console.Write("-target gte.$80 ");
 			Console.Write(" ...");
 			Console.WriteLine("\n");
 			Console.WriteLine("Seaches for memory corruption of the target address given by '-u' or '-j' with the given target values.");

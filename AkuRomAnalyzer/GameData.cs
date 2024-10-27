@@ -11,8 +11,8 @@ namespace AkuRomAnalyzer
 	{
 		private static readonly IDictionary<Region, DataBaseOffsets> regionBaseOffsets = new Dictionary<Region, DataBaseOffsets>()
 		{
-			{ Region.Us,    new DataBaseOffsets(0x840C, 0xA03F, 0x937F) },
-			{ Region.Japan, new DataBaseOffsets(0x8410, 0x9F6E, 0x92AE) }
+			{ Region.Us,    new DataBaseOffsets(0x76, 0x98, 0x840C, 0xA03F, 0x937F) },
+			{ Region.Japan, new DataBaseOffsets(0x73, 0x95, 0x8410, 0x9F6E, 0x92AE) }
 		};
 
 		private readonly RomLoader romLoader;
@@ -23,7 +23,7 @@ namespace AkuRomAnalyzer
 		public Region Region => romLoader.Region;
 		public byte[][] PrgBanks => romLoader.PrgRom;
 
-		private DataBaseOffsets BaseOffsets => regionBaseOffsets[Region];
+		internal DataBaseOffsets BaseOffsets => regionBaseOffsets[Region];
 
 		public byte[] ObjDataBank => romLoader.PrgRom[ObjDataBankIndex];
 		public byte[] FixedBank => romLoader.PrgRom[15];
@@ -65,10 +65,16 @@ namespace AkuRomAnalyzer
 			}
 		}
 
+		public ushort GetRoomDataPtr(int block, int sublevel, int room)
+			=> RoomToObjData[block][sublevel][room];
+
+		public ushort GetRoomDataPtr(int block, int sublevel, int room, int column)
+			=> (ushort)(RoomToObjData[block][sublevel][room] + ((column & 0x7F) * 2));
+
 		public byte GetRoomObjIdx(int block, int sublevel, int room, int cameraBlock)
 		{
 			cameraBlock &= 0x7F;
-			var roomDataPtr = RoomToObjData[block][sublevel][room] & 0x3FFF;
+			var roomDataPtr = GetRoomDataPtr(block, sublevel, room) & 0x3FFF;
 			return ObjDataBank[roomDataPtr + cameraBlock * 2];
 		}
 
@@ -88,12 +94,16 @@ namespace AkuRomAnalyzer
 
 	public struct DataBaseOffsets
 	{
+		public byte LoadColumn { get; private set; }
+		public byte ObjIdxPtr { get; private set; }
 		public ushort Mod6Table { get; private set; }
 		public ushort ObjTable { get; private set; }
 		public ushort BlockPointerTable { get; private set; }
 
-		public DataBaseOffsets(ushort mod6Table, ushort objTable, ushort blockPointerTable) 
+		public DataBaseOffsets(byte loadColumn, byte objIdxPtr, ushort mod6Table, ushort objTable, ushort blockPointerTable) 
 		{
+			LoadColumn = loadColumn;
+			ObjIdxPtr = objIdxPtr;
 			Mod6Table = mod6Table;
 			ObjTable = objTable;
 			BlockPointerTable = blockPointerTable;

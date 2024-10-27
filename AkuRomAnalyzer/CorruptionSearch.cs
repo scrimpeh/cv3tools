@@ -88,8 +88,8 @@ namespace AkuRomAnalyzer
 
 				// Reconstruct the sequence of OBJ writes from the ASM code here here
 
-				// Byte 0 -> $7C2, if 0 further processign stops
-				if (Parameters.TargetValues.Contains(objData[0]) && okMod6Offsets[0x7C2].Any())
+				// Byte 0 -> $7C2, if 0 further processing stops
+				if (Parameters.TargetPredicate.Matches(objData[0]) && okMod6Offsets[0x7C2].Any())
 					okObjWrites.Add(new ObjRamWrite(objIdx, 0x7C2, objData[0], 0));
 				if (objData[0] == 0)
 					continue;
@@ -102,19 +102,19 @@ namespace AkuRomAnalyzer
 				// 0/1 -> $7E0. Since we cannot predict the result of byte 1, we also forego this byte
 
 				// Byte 2 -> $7D4
-				if (Parameters.TargetValues.Contains(objData[2]) && okMod6Offsets[0x7D4].Any())
+				if (Parameters.TargetPredicate.Matches(objData[2]) && okMod6Offsets[0x7D4].Any())
 					okObjWrites.Add(new ObjRamWrite(objIdx, 0x7D4, objData[2], 2));
 
 				// Byte 3 -> $7E6
-				if (Parameters.TargetValues.Contains(objData[3]) && okMod6Offsets[0x7E6].Any())
+				if (Parameters.TargetPredicate.Matches(objData[3]) && okMod6Offsets[0x7E6].Any())
 					okObjWrites.Add(new ObjRamWrite(objIdx, 0x7E6, objData[3], 3));
 
 				// Byte 4 -> $7CE
-				if (Parameters.TargetValues.Contains(objData[4]) && okMod6Offsets[0x7CE].Any())
+				if (Parameters.TargetPredicate.Matches(objData[4]) && okMod6Offsets[0x7CE].Any())
 					okObjWrites.Add(new ObjRamWrite(objIdx, 0x7CE, objData[4], 4));
 
 				// 0 -> $7C8
-				if (Parameters.TargetValues.Contains(0) && okMod6Offsets[0x7C8].Any())
+				if (Parameters.TargetPredicate.Matches(0) && okMod6Offsets[0x7C8].Any())
 					okObjWrites.Add(new ObjRamWrite(objIdx, 0x7C8, 0, ObjRamWrite.NoObjByte));
 			}
 
@@ -160,12 +160,15 @@ namespace AkuRomAnalyzer
 						{
 							var mod6Offset = romInfo.Mod6Table[offset];
 							Console.Write($"Block {block:X1}, Sublevel {sublevel:X1} ({FormatUtil.FormatBlock(block, sublevel)}), Room {room}, Column {FormatUtil.ShowColumn(offset)}");
+							Console.Write($"   << [${romInfo.BaseOffsets.ObjIdxPtr:X2}]: ${romInfo.GetRoomDataPtr(block, sublevel, room):X4}");
+							Console.Write($" [${romInfo.BaseOffsets.ObjIdxPtr:X2},${romInfo.BaseOffsets.LoadColumn:X2}]: ${romInfo.GetRoomDataPtr(block, sublevel, room, offset):X4} >>  ");
 							Console.Write($" - Writing value ${obj.TargetValue:X2} from {FormatUtil.ShowObj(obj)} to {FormatUtil.ShowCorruptWrite(obj.TargetObjTable, mod6Offset)}");
 							Console.WriteLine(FormatUtil.ShowObjProperties(obj));
 						}
 					}
 				}
 			}
+			Console.WriteLine();
 		}
 	}
 }
